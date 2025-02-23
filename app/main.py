@@ -1,83 +1,111 @@
-import pygame
-import random
-import sys
+import pygame, math
 
 pygame.init()
 
 WIDTH, HEIGHT = 600, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("2D Physics Engine")
+pygame.display.set_caption("140d Sim")
 
-# Define colors
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
+radius = 20
 
-# Ball class
 class Ball:
-    def __init__(self, x, y, radius, dx=0, dy=0, color=BLUE):
-        self.x, self.y, self.radius = x, y, radius
-        self.dx, self.dy, self.color = dx, dy, color
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+        self.dx, self.dy = 2, 3
+        self.mass = radius
 
     def move(self):
         self.x += self.dx
         self.y += self.dy
 
     def apply_gravity(self, gravity=0.2):
-        self.dy += gravity  # Apply gravity to vertical velocity
+        self.dy += gravity
 
     def bounce(self, width, height):
-        # Bounce off left and right walls
-        if self.x <= self.radius or self.x >= width - self.radius:
+        if self.x <= radius or self.x >= width - radius:
             self.dx *= -1
-
-        # Bounce off top wall
-        if self.y <= self.radius:
+        if self.y <= radius:
             self.dy *= -1
-
-        # Handle bouncing off the bottom
-        if self.y >= height - self.radius:
-            self.y = height - self.radius  # Correct position to avoid going under the ground
-            self.dy *= -0.9  # Apply damping to vertical velocity when bouncing off the floor
+        if self.y >= height - radius:
+            self.y = height - radius
+            self.dy *= -0.9
 
     def draw(self, screen):
-        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
+        pygame.draw.circle(screen, (0, 0, 0), (int(self.x), int(self.y)), radius)
 
-# Create a few balls with initial positions and velocities
+    def check_collision(self, other):
+        dx = other.x - self.x
+        dy = other.y - self.y
+        distance = math.sqrt(dx ** 2 + dy ** 2)
+
+        # Check if collision occurred
+        if distance < radius + radius:
+            # Resolve overlap
+            overlap = 0.5 * (radius + radius - distance)
+            self.x -= overlap * (dx / distance)
+            self.y -= overlap * (dy / distance)
+            other.x += overlap * (dx / distance)
+            other.y += overlap * (dy / distance)
+
+            # Calculate normalized collision vector
+            nx, ny = dx / distance, dy / distance
+
+            tx, ty = -ny, nx
+
+            # Dot product tangent
+            dpTan1 = self.dx * tx + self.dy * ty
+            dpTan2 = other.dx * tx + other.dy * ty
+
+            # Dot product normal
+            dpNorm1 = self.dx * nx + self.dy * ny
+            dpNorm2 = other.dx * nx + other.dy * ny
+
+            # Conservation of momentum in 1D
+            m1, m2 = self.mass, other.mass
+            v1 = (dpNorm1 * (m1 - m2) + 2 * m2 * dpNorm2) / (m1 + m2)
+            v2 = (dpNorm2 * (m2 - m1) + 2 * m1 * dpNorm1) / (m1 + m2)
+
+            # Update velocities
+            self.dx = tx * dpTan1 + nx * v1
+            self.dy = ty * dpTan1 + ny * v1
+            other.dx = tx * dpTan2 + nx * v2
+            other.dy = ty * dpTan2 + ny * v2
+
 balls = [
-    Ball(random.randint(100, 300), random.randint(100, 300), radius=20, dx=2, dy=3, color=RED),
-    Ball(random.randint(400, 600), random.randint(100, 300), radius=25, dx=-3, dy=2, color=GREEN),
-    Ball(random.randint(300, 500), random.randint(400, 500), radius=15, dx=1, dy=-2, color=BLUE)
+    Ball(100, 400),
+    Ball(200, 300),
+    Ball(300, 200),
+    Ball(400, 100),
 ]
 
-# Main game loop
 def game_loop():
     clock = pygame.time.Clock()
     running = True
 
     while running:
-        screen.fill(WHITE)
+        screen.fill((160, 160, 160))
 
-        # Handle events
+        # Event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
 
-        # Update and render all balls
+        # Apply physics and draw balls
         for ball in balls:
-            ball.apply_gravity()
+            # ball.apply_gravity()
             ball.move()
             ball.bounce(WIDTH, HEIGHT)
+
             ball.draw(screen)
 
-        pygame.display.flip()  # Update the display
+        # Check collisions between balls
+        for i, ball in enumerate(balls):
+            for other in balls[i + 1:]:
+                ball.check_collision(other)
 
-        # Set FPS
+        pygame.display.flip()
         clock.tick(60)
 
     pygame.quit()
-    sys.exit()
 
-# Run the game loop
 game_loop()
