@@ -14,9 +14,6 @@ ENV DISPLAY=host.docker.internal:0
 ENV QT_X11_NO_MITSHM=1
 
 WORKDIR /app
-
 COPY . /app
-
-RUN python -c "import pygame; pygame.mixer.quit()"
 
 CMD ["python", "app/main.py"]
