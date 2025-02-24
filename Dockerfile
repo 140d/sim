@@ -16,4 +16,6 @@ ENV QT_X11_NO_MITSHM=1
 WORKDIR /app
 COPY . /app
 
+RUN echo "For macOS users, please install and run XQuartz. Ensure it is running before starting the Docker container." > /app/README.txt
+
 CMD ["python", "app/main.py"]
