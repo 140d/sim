@@ -1,4 +1,4 @@
-# 140d Sim
+# 140d Simulation
 
 A physics-based simulation of bouncing balls with gravity and collision detection, built using Pygame.
 
